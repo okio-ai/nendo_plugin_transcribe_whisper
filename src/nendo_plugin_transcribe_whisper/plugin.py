@@ -74,6 +74,24 @@ class TranscribeWhisper(NendoAnalysisPlugin):
             device=self.device,
             return_timestamps="word",
         )
+        
+    @NendoAnalysisPlugin.plugin_data("transcription")
+    def transcribe_track(
+        self,
+        track: NendoTrack,
+        return_timestamps: bool = False
+    ) -> dict:
+        with torch.no_grad():
+            result = self.pipe(track.resource.src)
+
+        if return_timestamps:
+            transcription = "\n".join(
+                [f"[{to_timestamp(chunk['timestamp'][0])}-{to_timestamp(chunk['timestamp'][1])}]:{chunk['text']}" for
+                 chunk in result["chunks"]])
+        else:
+            transcription = result["text"]
+
+        return {"transcription": transcription}
 
     @NendoAnalysisPlugin.run_track
     def transcribe(
@@ -90,22 +108,8 @@ class TranscribeWhisper(NendoAnalysisPlugin):
         Returns:
             NendoTrack: The track with the transcription added to its `plugin_data`.
         """
-        with torch.no_grad():
-            result = self.pipe(track.resource.src)
-
-        if return_timestamps:
-            transcription = "\n".join(
-                [f"[{to_timestamp(chunk['timestamp'][0])}-{to_timestamp(chunk['timestamp'][1])}]:{chunk['text']}" for
-                 chunk in result["chunks"]])
-        else:
-            transcription = result["text"]
-
-        track = track.add_plugin_data(
-            plugin_name="nendo_plugin_transcribe_whisper",
-            plugin_version="0.1.0",
-            key="transcription",
-            value=transcription,
-        )
+        self.transcribe_track(track, return_timestamps)
+        track.refresh()
 
         # manually clear memory
         gc.collect()
