@@ -34,7 +34,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.8,<3.11"
-nendo = "^0.2.0"
+nendo = "^0.2.4"
 pydantic = "^2.4.2"
 transformers = "^4.37.2"
 accelerate = "^0.24.1"
